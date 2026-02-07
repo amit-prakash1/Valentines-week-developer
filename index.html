@@ -138,8 +138,33 @@
         let app, database, isConnected = false, currentEditingDay = 0, config = { currentDay: 0, mainTitle: 'Our Love Story', subtitle: "VALENTINE'S WEEK 2026" };
         try { app = initializeApp(firebaseConfig); database = getDatabase(app); isConnected = true; document.getElementById('statusIndicator').classList.remove('disconnected'); initializeData(); } catch (error) { console.error('Firebase error:', error); alert('Firebase connection error: ' + error.message); }
         const KEY = 'MySecretValentineKey2026!@#$%';
-        function encrypt(text) { let e = ''; for (let i = 0; i < text.length; i++) { e += String.fromCharCode(text.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length)); } return btoa(e); }
-        function decrypt(encrypted) { try { const decoded = atob(encrypted); let d = ''; for (let i = 0; i < decoded.length; i++) { d += String.fromCharCode(decoded.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length)); } return d; } catch { return encrypted; } }
+        // function encrypt(text) { let e = ''; for (let i = 0; i < text.length; i++) { e += String.fromCharCode(text.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length)); } return btoa(e); }
+        // function decrypt(encrypted) { try { const decoded = atob(encrypted); let d = ''; for (let i = 0; i < decoded.length; i++) { d += String.fromCharCode(decoded.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length)); } return d; } catch { return encrypted; } }
+
+        function encrypt(text) {
+            const encoded = new TextEncoder().encode(text);
+            let result = '';
+            for (let i = 0; i < encoded.length; i++) {
+                result += String.fromCharCode(encoded[i] ^ KEY.charCodeAt(i % KEY.length));
+            }
+            return btoa(result);
+        }
+        
+        function decrypt(encrypted) {
+            try {
+                const decoded = atob(encrypted);
+                const bytes = new Uint8Array(decoded.length);
+        
+                for (let i = 0; i < decoded.length; i++) {
+                    bytes[i] = decoded.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length);
+                }
+        
+                return new TextDecoder().decode(bytes);
+            } catch {
+                return encrypted;
+            }
+        }
+        
         async function initializeData() { const configSnap = await get(ref(database, 'config')); if (!configSnap.exists()) { await set(ref(database, 'config'), config); } else { config = configSnap.val(); } for (const day of valentineDays) { const daySnap = await get(ref(database, 'days/' + day.id)); if (!daySnap.exists()) { await set(ref(database, 'days/' + day.id), { icon: day.defaultIcon, title: day.name, date: day.date, message: `Happy ${day.name}! Write your special message here...`, photos: [] }); } } renderCurrentDaySelector(); renderDayEditorSelector(); loadConfig(); loadDay(0); listenToMessages(); }
         function renderCurrentDaySelector() { document.getElementById('currentDaySelector').innerHTML = valentineDays.map(day => `<button class="day-select-btn ${day.id === config.currentDay ? 'active' : ''}" onclick="setCurrentDay(${day.id})">${day.defaultIcon}<br><span style="font-size: 0.7rem;">${day.name}</span></button>`).join(''); }
         function renderDayEditorSelector() { document.getElementById('dayEditorSelector').innerHTML = valentineDays.map(day => `<button class="day-btn ${day.id === currentEditingDay ? 'active' : ''}" onclick="loadDay(${day.id})">${day.defaultIcon}<br>${day.name}</button>`).join(''); }
